@@ -1,0 +1,14 @@
+Module
+  name: exp_tracker
+  description: Tracks player experience
+  author: EgzoT
+  website: https://github.com/EgzoT/exp_tracker
+  version: 0.1
+
+  dependencies: []
+  autoload: true
+  autoload-priority: 1000
+  sandboxed: true
+  scripts: [ exp_tracker ]
+  @onLoad: init()
+  @onUnload: terminate()

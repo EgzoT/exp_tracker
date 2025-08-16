@@ -1,0 +1,9 @@
+MiniWindow
+  id: expTrackerWindow
+  !text: tr('Exp tracker')
+  icon: /exp_tracker/ui/icon
+  height: 175
+  @onClose: modules.exp_tracker.ui:close()
+  &save: true
+
+  MiniWindowContents
