@@ -1,0 +1,274 @@
+function ExpTrackerSystem()
+    local system = {
+        configFile = '/exp_tracker/config.json';
+        isInit = false;
+        trackExpEvent = false;
+        cleanOldDataEvent = false;
+
+        -- Experience stages configuration
+        defaultExpStages = {
+            {levelMin = 1, levelMax = 79, multiplier = 5.0},
+            {levelMin = 80, levelMax = 119, multiplier = 3.0},
+            {levelMin = 120, levelMax = 149, multiplier = 2.0},
+            {levelMin = 150, levelMax = 199, multiplier = 1.5},
+            {levelMin = 200, levelMax = 250, multiplier = 1.0}
+        };
+
+        -- Time intervals for exp tracking (in seconds)
+        timeIntervals = {60, 180, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800};
+
+        -- Experience data storage
+        expData = {
+            history = {}, -- Stores exp gains with timestamps
+            deaths = {}, -- Stores death events
+            playerCounts = {}, -- Stores player counts per interval
+            lastExp = 0,
+            currentLevel = 0,
+            currentExp = 0,
+            staminaEnabled = true
+        };
+
+        -- Module initialization
+        init = function(self)
+            if not self.isInit then
+                self:loadConfig()
+                connect(g_game, { onDeath = self.onDeath })
+                self.trackExpEvent = cycleEvent(function() self:trackExp() end, 1000)
+                self.cleanOldDataEvent = cycleEvent(function() self:cleanOldData() end, 60000)
+
+                self.isInit = true
+            end
+        end;
+
+        -- Module termination
+        terminate = function(self)
+            if self.isInit then
+                disconnect(g_game, { onDeath = self.onDeath })
+                if self.trackExpEvent ~= false then
+                    removeEvent(self.trackExpEvent)
+                    self.trackExpEvent = false
+                end
+                if self.cleanOldDataEvent ~= false then
+                    removeEvent(self.cleanOldDataEvent)
+                    self.cleanOldDataEvent = false
+                end
+
+                self.isInit = false
+            end
+        end;
+
+        -- Load configuration
+        loadConfig = function(self)
+            if g_resources.fileExists(configFile) then
+                local parsed = JSON.decode(g_resources.readFileContents(configFile))
+                self.expData.stages = parsed.stages or self.defaultExpStages
+                self.expData.staminaEnabled = parsed.staminaEnabled ~= nil and parsed.staminaEnabled or true
+            else
+                self.expData.stages = self.defaultExpStages
+            end
+        end;
+
+        -- Save configuration
+        saveConfig = function(self)
+            local config = {
+                stages = self.expData.stages,
+                staminaEnabled = self.expData.staminaEnabled
+            }
+            g_resources.writeFileContents(configFile, JSON.encode(config))
+        end;
+
+        -- Get experience multiplier based on level
+        getExpMultiplier = function(self, level)
+            for _, stage in ipairs(self.expData.stages) do
+                if level >= stage.levelMin and level <= stage.levelMax then
+                    return stage.multiplier
+                end
+            end
+            return 1.0 -- Default multiplier
+        end;
+
+        -- Calculate stamina multiplier (150% for 42-40 hours)
+        getStaminaMultiplier = function(self)
+            if not self.expData.staminaEnabled then return 1.0 end
+            local stamina = g_game.getLocalPlayer():getStamina() / 60 -- Convert to hours
+            return stamina >= 40 and stamina <= 42 and 1.5 or 1.0
+        end;
+
+        -- Calculate experience needed for next level
+        getExpForLevel = function(self, level)
+            return math.floor(((50 * level * level * level) - (150 * level * level) + (400 * level)) / 3)
+        end;
+
+        getPlayers = function(self)
+            local player = g_game.getLocalPlayer()
+            if not player then return end
+
+            local players = {}
+            -- Get spectators: multiFloor -> false
+            local spectators = g_map.getSpectators(player:getPosition(), false)
+            for _, creature in ipairs(spectators) do
+                if creature:isPlayer() and not creature:isLocalPlayer() then
+                    table.insert(players, creature:getName())
+                end
+            end
+
+            return players
+        end;
+
+        getPlayersCount = function(self)
+            return #self:getPlayers()
+        end;
+
+        -- Track experience gain
+        trackExp = function(self)
+            local player = g_game.getLocalPlayer()
+            if not player then return end
+
+            local currentExp = player:getExperience()
+            local level = player:getLevel()
+
+            if self.expData.lastExp > 0 and currentExp > self.expData.lastExp then
+                local expGain = currentExp - self.expData.lastExp
+                local multiplier = self:getExpMultiplier(level) * self:getStaminaMultiplier()
+                local adjustedExp = math.floor(expGain / multiplier)
+
+                table.insert(self.expData.history, {
+                    timestamp = os.time(),
+                    exp = adjustedExp,
+                    level = level,
+                    players = self:getPlayersCount()
+                })
+            end
+
+            self.expData.lastExp = currentExp
+            self.expData.currentLevel = level
+            self.expData.currentExp = currentExp
+
+            -- Update player counts
+            for _, interval in ipairs(self.timeIntervals) do
+                self.expData.playerCounts[interval] = self.expData.playerCounts[interval] or {}
+                self.expData.playerCounts[interval][os.time()] = self:getPlayersCount()
+            end
+        end;
+
+        -- Clean old data
+        cleanOldData = function(self)
+            local now = os.time()
+            for i = #self.expData.history, 1, -1 do
+                if now - self.expData.history[i].timestamp > self.timeIntervals[#self.timeIntervals] then
+                    table.remove(self.expData.history, i)
+                end
+            end
+            for interval, counts in pairs(self.expData.playerCounts) do
+                for timestamp in pairs(counts) do
+                    if now - timestamp > interval then
+                        counts[timestamp] = nil
+                    end
+                end
+            end
+        end;
+
+        -- Handle player death
+        onDeathAction = function(self)
+            local player = g_game.getLocalPlayer()
+            if not player then return end
+
+            local expLoss = self.expData.currentExp - player:getExperience()
+            table.insert(self.expData.deaths, {
+                timestamp = os.time(),
+                expLost = expLoss,
+                previousExp = self.expData.currentExp,
+                level = self.expData.currentLevel
+            })
+        end;
+
+        -- Calculate exp gain for interval
+        getExpForInterval = function(self, seconds)
+            local now = os.time()
+            local totalExp = 0
+            for _, entry in ipairs(self.expData.history) do
+                if now - entry.timestamp <= seconds then
+                    totalExp = totalExp + entry.exp
+                end
+            end
+            return totalExp
+        end;
+
+        -- Calculate average players for interval
+        getAvgPlayersForInterval = function(self, seconds)
+            local counts = self.expData.playerCounts[seconds] or {}
+            local sum, count = 0, 0
+            for _, players in pairs(counts) do
+                sum = sum + players
+                count = count + 1
+            end
+            return count > 0 and math.floor(sum / count) or 0
+        end;
+
+        -- Calculate time to next level
+        getTimeToNextLevel = function(self)
+            local player = g_game.getLocalPlayer()
+            if not player then return 0 end
+
+            local level = player:getLevel()
+            local currentExp = player:getExperience()
+            local expNeeded = self:getExpForLevel(level + 1) - currentExp
+            local expPerSecond = self:getExpForInterval(3600) / 3600 -- Exp per second based on last hour
+            return expPerSecond > 0 and math.floor(expNeeded / expPerSecond) or 0
+        end;
+
+        -- Calculate level at stamina end
+        getLevelAtStaminaEnd = function(self)
+            local player = g_game.getLocalPlayer()
+            if not player then return 0 end
+
+            local stamina = player:getStamina() / 60 -- In hours
+            if stamina > 40 then stamina = 40 end -- Cap at 40 hours (Tibia stamina limit)
+            
+            local expPerSecond = self:getExpForInterval(3600) / 3600
+            local totalExp = expPerSecond * stamina * 3600
+            local level = player:getLevel()
+            local currentExp = player:getExperience()
+            
+            while totalExp > 0 do
+                local expToNext = self:getExpForLevel(level + 1) - currentExp
+                if totalExp >= expToNext then
+                    totalExp = totalExp - expToNext
+                    currentExp = self:getExpForLevel(level + 1)
+                    level = level + 1
+                else
+                    break
+                end
+            end
+            return level
+        end;
+
+        -- Get death history
+        getDeathHistory = function(self)
+            return self.expData.deaths
+        end;
+
+        -- Get exp stages
+        getExpStages = function(self)
+            return self.expData.stages
+        end;
+
+        -- Update exp stages
+        updateExpStages = function(self, stages)
+            self.expData.stages = stages
+            self:saveConfig()
+        end;
+
+        -- Toggle stamina system
+        toggleStamina = function(self, enabled)
+            self.expData.staminaEnabled = enabled
+            self:saveConfig()
+        end;
+    }
+
+    system.onDeath = function()
+        system:onDeathAction()
+    end
+
+    return system
+end

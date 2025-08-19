@@ -1,9 +1,354 @@
 MiniWindow
   id: expTrackerWindow
-  !text: tr('Exp tracker')
+  !text: tr('Exp Tracker')
   icon: /exp_tracker/ui/icon
-  height: 175
+  height: 250
   @onClose: modules.exp_tracker.ui:close()
   &save: true
 
   MiniWindowContents
+    id: expTrackerWindowContents
+    padding-top: 5
+    padding-left: 5
+    padding-right: 5
+
+    Label
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Time to next level:')
+
+    Label
+      id: timeToLevel
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 minutes')
+      margin-top: 2
+
+    Label
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Level at stamina end:')
+      margin-top: 5
+
+    Label
+      id: levelAtStaminaEnd
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0')
+      margin-top: 2
+
+    Label
+      id: title60
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 1 minute')
+      margin-top: 5
+
+    Label
+      id: exp60
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players60
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title180
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 3 minutes')
+      margin-top: 5
+
+    Label
+      id: exp180
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players180
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title300
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 5 minutes')
+      margin-top: 5
+
+    Label
+      id: exp300
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players300
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 10 minutes')
+      margin-top: 5
+
+    Label
+      id: exp600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title900
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 15 minutes')
+      margin-top: 5
+
+    Label
+      id: exp900
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players900
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title1800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 30 minutes')
+      margin-top: 5
+
+    Label
+      id: exp1800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players1800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title3600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 1 hour')
+      margin-top: 5
+
+    Label
+      id: exp3600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players3600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title7200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 2 hours')
+      margin-top: 5
+
+    Label
+      id: exp7200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players7200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title10800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 3 hours')
+      margin-top: 5
+
+    Label
+      id: exp10800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players10800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title21600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 6 hours')
+      margin-top: 5
+
+    Label
+      id: exp21600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players21600
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title43200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 12 hours')
+      margin-top: 5
+
+    Label
+      id: exp43200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players43200
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title86400
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 24 hours')
+      margin-top: 5
+
+    Label
+      id: exp86400
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 2
+
+    Label
+      id: players86400
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2
+
+    Label
+      id: title172800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('Last 48 hours')
+      margin-top: 5
+
+    Label
+      id: exp172800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 exp')
+      margin-top: 5
+
+    Label
+      id: players172800
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      !text: tr('0 players')
+      margin-top: 2

@@ -1,11 +1,11 @@
 Module
   name: exp_tracker
-  description: Tracks player experience
+  description: Tracks player experience, progress, and exp stages
   author: EgzoT
   website: https://github.com/EgzoT/exp_tracker
   version: 0.1
 
-  dependencies: []
+  dependencies: [ json ]
   autoload: true
   autoload-priority: 1000
   sandboxed: true

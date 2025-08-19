@@ -1,7 +1,9 @@
+dofile('expTrackerSystem')
 if g_graphics then
     dofile('ui/ui')
 end
 
+expTracker = ExpTrackerSystem()
 -- UI
 if g_graphics then
     ui = UI()
@@ -11,16 +13,14 @@ function init()
     if g_graphics then
         ui:init()
     end
-
-    --TODO
+    expTracker:init()
 end
 
 function terminate()
     if g_graphics then
         ui:terminate()
     end
-
-    --TODO
+    expTracker:terminate()
 end
 
 function disable()
