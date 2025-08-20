@@ -32,7 +32,7 @@ function ExpTrackerSystem()
         init = function(self)
             if not self.isInit then
                 self:loadConfig()
-                connect(g_game, { onDeath = self.onDeath })
+                self:connect()
                 self.trackExpEvent = cycleEvent(function() self:trackExp() end, 1000)
                 self.cleanOldDataEvent = cycleEvent(function() self:cleanOldData() end, 60000)
 
@@ -43,7 +43,7 @@ function ExpTrackerSystem()
         -- Module termination
         terminate = function(self)
             if self.isInit then
-                disconnect(g_game, { onDeath = self.onDeath })
+                self:disconnect()
                 if self.trackExpEvent ~= false then
                     removeEvent(self.trackExpEvent)
                     self.trackExpEvent = false
@@ -55,6 +55,22 @@ function ExpTrackerSystem()
 
                 self.isInit = false
             end
+        end;
+
+        connect = function(self)
+            connect(g_game, { onDeath = self.onDeath })
+            connect(Player, {
+                onAppear = self.onPlayerAppear,
+                onDisappear = self.onPlayerDisappear
+            })
+        end;
+
+        disconnect = function(self)
+            disconnect(g_game, { onDeath = self.onDeath })
+            disconnect(Player, {
+                onAppear = self.onPlayerAppear,
+                onDisappear = self.onPlayerDisappear
+            })
         end;
 
         -- Load configuration
@@ -182,6 +198,18 @@ function ExpTrackerSystem()
             })
         end;
 
+        onPlayerAppearAction = function(self, player)
+            if not player:isLocalPlayer() and player:getPosition().z == g_game.getLocalPlayer():getPosition().z then
+                --TODO
+            end
+        end;
+
+        onPlayerDisappearAction = function(self, player)
+            if not player:isLocalPlayer() and player:getPosition().z == g_game.getLocalPlayer():getPosition().z then
+                --TODO
+            end
+        end;
+
         -- Calculate exp gain for interval
         getExpForInterval = function(self, seconds)
             local now = os.time()
@@ -223,7 +251,7 @@ function ExpTrackerSystem()
             if not player then return 0 end
 
             local stamina = player:getStamina() / 60 -- In hours
-            if stamina > 40 then stamina = 40 end -- Cap at 40 hours (Tibia stamina limit)
+            if stamina > 40 then stamina = 40 end -- Cap at 40 hours (stamina limit)
             
             local expPerSecond = self:getExpForInterval(3600) / 3600
             local totalExp = expPerSecond * stamina * 3600
@@ -268,6 +296,14 @@ function ExpTrackerSystem()
 
     system.onDeath = function()
         system:onDeathAction()
+    end
+
+    system.onPlayerAppear = function(player)
+        system:onPlayerAppearAction(player)
+    end
+
+    system.onPlayerDisappear = function(player)
+        system:onPlayerDisappearAction(player)
     end
 
     return system
