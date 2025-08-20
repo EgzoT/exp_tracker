@@ -39,7 +39,7 @@ function UI()
                     local expLabel = self.windowContents:getChildById('exp' .. seconds)
                     local playersLabel = self.windowContents:getChildById('players' .. seconds)
                     expLabel:setText(expTracker:getExpForInterval(seconds) .. ' exp')
-                    playersLabel:setText(expTracker:getAvgPlayersForInterval(seconds) .. ' players')
+                    playersLabel:setText(expTracker:getUniquePlayersForInterval(seconds) .. ' players')
                 end
             end
 

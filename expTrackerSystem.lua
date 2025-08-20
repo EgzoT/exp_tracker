@@ -21,11 +21,14 @@ function ExpTrackerSystem()
         expData = {
             history = {}, -- Stores exp gains with timestamps
             deaths = {}, -- Stores death events
-            playerCounts = {}, -- Stores player counts per interval
             lastExp = 0,
             currentLevel = 0,
             currentExp = 0,
-            staminaEnabled = true
+            staminaEnabled = true,
+            playerMap = {}, -- Maps player names to unique IDs
+            nextPlayerId = 1,
+            playerEvents = {}, -- List of player visibility events: {id, appear, disappear}
+            uniquePlayers = {} -- Maps player ID to last update timestamp for unique count optimization
         };
 
         -- Module initialization
@@ -59,17 +62,21 @@ function ExpTrackerSystem()
 
         connect = function(self)
             connect(g_game, { onDeath = self.onDeath })
+            connect(LocalPlayer, { onPositionChange = self.onLocalPlayerPositionChange })
             connect(Player, {
                 onAppear = self.onPlayerAppear,
-                onDisappear = self.onPlayerDisappear
+                onDisappear = self.onPlayerDisappear,
+                onPositionChange = self.onPlayerPositionChange
             })
         end;
 
         disconnect = function(self)
             disconnect(g_game, { onDeath = self.onDeath })
+            disconnect(LocalPlayer, { onPositionChange = self.onLocalPlayerPositionChange })
             disconnect(Player, {
                 onAppear = self.onPlayerAppear,
-                onDisappear = self.onPlayerDisappear
+                onDisappear = self.onPlayerDisappear,
+                onPositionChange = self.onPlayerPositionChange
             })
         end;
 
@@ -115,24 +122,15 @@ function ExpTrackerSystem()
             return math.floor(((50 * level * level * level) - (150 * level * level) + (400 * level)) / 3)
         end;
 
-        getPlayers = function(self)
-            local player = g_game.getLocalPlayer()
-            if not player then return end
-
-            local players = {}
-            -- Get spectators: multiFloor -> false
-            local spectators = g_map.getSpectators(player:getPosition(), false)
-            for _, creature in ipairs(spectators) do
-                if creature:isPlayer() and not creature:isLocalPlayer() then
-                    table.insert(players, creature:getName())
+        -- Get current number of visible players
+        getCurrentPlayersCount = function(self)
+            local count = 0
+            for _, event in ipairs(self.expData.playerEvents) do
+                if event.disappear == nil then
+                    count = count + 1
                 end
             end
-
-            return players
-        end;
-
-        getPlayersCount = function(self)
-            return #self:getPlayers()
+            return count
         end;
 
         -- Track experience gain
@@ -152,34 +150,33 @@ function ExpTrackerSystem()
                     timestamp = os.time(),
                     exp = adjustedExp,
                     level = level,
-                    players = self:getPlayersCount()
+                    players = self:getCurrentPlayersCount()
                 })
             end
 
             self.expData.lastExp = currentExp
             self.expData.currentLevel = level
             self.expData.currentExp = currentExp
-
-            -- Update player counts
-            for _, interval in ipairs(self.timeIntervals) do
-                self.expData.playerCounts[interval] = self.expData.playerCounts[interval] or {}
-                self.expData.playerCounts[interval][os.time()] = self:getPlayersCount()
-            end
         end;
 
         -- Clean old data
         cleanOldData = function(self)
             local now = os.time()
+            local maxInterval = self.timeIntervals[#self.timeIntervals]
             for i = #self.expData.history, 1, -1 do
-                if now - self.expData.history[i].timestamp > self.timeIntervals[#self.timeIntervals] then
+                if now - self.expData.history[i].timestamp > maxInterval then
                     table.remove(self.expData.history, i)
                 end
             end
-            for interval, counts in pairs(self.expData.playerCounts) do
-                for timestamp in pairs(counts) do
-                    if now - timestamp > interval then
-                        counts[timestamp] = nil
-                    end
+            for i = #self.expData.playerEvents, 1, -1 do
+                local event = self.expData.playerEvents[i]
+                if event.disappear and now - event.disappear > maxInterval then
+                    table.remove(self.expData.playerEvents, i)
+                end
+            end
+            for id, ts in pairs(self.expData.uniquePlayers) do
+                if now - ts > maxInterval then
+                    self.expData.uniquePlayers[id] = nil
                 end
             end
         end;
@@ -200,13 +197,57 @@ function ExpTrackerSystem()
 
         onPlayerAppearAction = function(self, player)
             if not player:isLocalPlayer() and player:getPosition().z == g_game.getLocalPlayer():getPosition().z then
-                --TODO
+                local name = player:getName()
+                if not self.expData.playerMap[name] then
+                    self.expData.playerMap[name] = self.expData.nextPlayerId
+                    self.expData.nextPlayerId = self.expData.nextPlayerId + 1
+                end
+                local id = self.expData.playerMap[name]
+                table.insert(self.expData.playerEvents, {id = id, appear = os.time(), disappear = nil})
+                self.expData.uniquePlayers[id] = os.time()
             end
         end;
 
         onPlayerDisappearAction = function(self, player)
-            if not player:isLocalPlayer() and player:getPosition().z == g_game.getLocalPlayer():getPosition().z then
-                --TODO
+            if g_game.isOnline() and not player:isLocalPlayer() and player:getPosition().z == g_game.getLocalPlayer():getPosition().z then
+                local name = player:getName()
+                local id = self.expData.playerMap[name]
+                if id then
+                    for i = #self.expData.playerEvents, 1, -1 do
+                        local event = self.expData.playerEvents[i]
+                        if event.id == id and event.disappear == nil then
+                            event.disappear = os.time()
+                            break
+                        end
+                    end
+                    self.expData.uniquePlayers[id] = os.time()
+                end
+            end
+        end;
+
+        onLocalPlayerFloorChangeAction = function(self, localPlayer, newPos, oldPos)
+            if oldPos and newPos.z ~= oldPos.z then
+                -- Get spectators: multiFloor -> true
+                local spectators = g_map.getSpectators(localPlayer:getPosition(), true)
+                for _, creature in ipairs(spectators) do
+                    if creature:isPlayer() and not creature:isLocalPlayer() then
+                        if oldPos.z == creature:getPosition().z then
+                            self:onPlayerDisappearAction(creature)
+                        elseif newPos.z == creature:getPosition().z then
+                            self:onPlayerAppearAction(creature)
+                        end
+                    end
+                end
+            end
+        end;
+
+        onPlayerFloorChangeAction = function(self, player, newPos, oldPos)
+            if not player:isLocalPlayer() and newPos and oldPos then
+                if oldPos.z == g_game.getLocalPlayer():getPosition().z and oldPos.z ~= newPos.z then
+                    self:onPlayerDisappearAction(player)
+                elseif newPos.z == g_game.getLocalPlayer():getPosition().z and oldPos.z ~= newPos.z then
+                    self:onPlayerAppearAction(player)
+                end
             end
         end;
 
@@ -222,15 +263,17 @@ function ExpTrackerSystem()
             return totalExp
         end;
 
-        -- Calculate average players for interval
-        getAvgPlayersForInterval = function(self, seconds)
-            local counts = self.expData.playerCounts[seconds] or {}
-            local sum, count = 0, 0
-            for _, players in pairs(counts) do
-                sum = sum + players
-                count = count + 1
+        -- Calculate unique players for interval
+        getUniquePlayersForInterval = function(self, seconds)
+            local now = os.time()
+            local start = now - seconds
+            local count = 0
+            for _, ts in pairs(self.expData.uniquePlayers) do
+                if ts >= start then
+                    count = count + 1
+                end
             end
-            return count > 0 and math.floor(sum / count) or 0
+            return count
         end;
 
         -- Calculate time to next level
@@ -304,6 +347,14 @@ function ExpTrackerSystem()
 
     system.onPlayerDisappear = function(player)
         system:onPlayerDisappearAction(player)
+    end
+
+    system.onLocalPlayerPositionChange = function(localPlayer, newPos, oldPos)
+        system:onLocalPlayerFloorChangeAction(localPlayer, newPos, oldPos)
+    end
+
+    system.onPlayerPositionChange = function(player, newPos, oldPos)
+        system:onPlayerFloorChangeAction(player, newPos, oldPos)
     end
 
     return system
