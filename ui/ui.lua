@@ -32,13 +32,28 @@ function UI()
         end;
 
         setupUI = function(self)
+            local adjustedBtn = self.windowContents:getChildById('modeAdjusted')
+            local rawBtn = self.windowContents:getChildById('modeRaw')
+
+            adjustedBtn.onClick = function()
+                expTracker.currentMode = 'adjusted'
+                self:setButtonStates()
+            end
+
+            rawBtn.onClick = function()
+                expTracker.currentMode = 'raw'
+                self:setButtonStates()
+            end
+
+            self:setButtonStates()
+
             -- Update Exp Tab
             local updateExp = function()
                 local intervals = {60, 180, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800}
                 for _, seconds in ipairs(intervals) do
                     local expLabel = self.windowContents:getChildById('exp' .. seconds)
                     local playersLabel = self.windowContents:getChildById('players' .. seconds)
-                    expLabel:setText(expTracker:getExpForInterval(seconds) .. ' exp')
+                    expLabel:setText(expTracker:getExpForInterval(seconds, expTracker.currentMode) .. ' exp')
                     playersLabel:setText(expTracker:getUniquePlayersForInterval(seconds) .. ' players')
                 end
             end
@@ -57,6 +72,18 @@ function UI()
                     updateExp()
                     updateProgress()
                 end, 1000)
+            end
+        end;
+
+        setButtonStates = function(self)
+            local adjustedBtn = self.windowContents:getChildById('modeAdjusted')
+            local rawBtn = self.windowContents:getChildById('modeRaw')
+            if expTracker.currentMode == 'adjusted' then
+                adjustedBtn:setColor('green')
+                rawBtn:setColor('white')
+            else
+                adjustedBtn:setColor('white')
+                rawBtn:setColor('green')
             end
         end;
 

@@ -4,6 +4,7 @@ function ExpTrackerSystem()
         isInit = false;
         trackExpEvent = false;
         cleanOldDataEvent = false;
+        currentMode = 'adjusted';
 
         -- Experience stages configuration
         defaultExpStages = {
@@ -148,7 +149,8 @@ function ExpTrackerSystem()
 
                 table.insert(self.expData.history, {
                     timestamp = os.time(),
-                    exp = adjustedExp,
+                    adjusted = adjustedExp,
+                    raw = expGain,
                     level = level,
                     players = self:getCurrentPlayersCount()
                 })
@@ -252,12 +254,14 @@ function ExpTrackerSystem()
         end;
 
         -- Calculate exp gain for interval
-        getExpForInterval = function(self, seconds)
+        getExpForInterval = function(self, seconds, mode)
+            mode = mode or self.currentMode
+            local field = (mode == 'adjusted') and 'adjusted' or 'raw'
             local now = os.time()
             local totalExp = 0
             for _, entry in ipairs(self.expData.history) do
                 if now - entry.timestamp <= seconds then
-                    totalExp = totalExp + entry.exp
+                    totalExp = totalExp + entry[field]
                 end
             end
             return totalExp
@@ -284,7 +288,7 @@ function ExpTrackerSystem()
             local level = player:getLevel()
             local currentExp = player:getExperience()
             local expNeeded = self:getExpForLevel(level + 1) - currentExp
-            local expPerSecond = self:getExpForInterval(3600) / 3600 -- Exp per second based on last hour
+            local expPerSecond = self:getExpForInterval(3600, 'raw') / 3600 -- Exp per second based on last hour
             return expPerSecond > 0 and math.floor(expNeeded / expPerSecond) or 0
         end;
 
@@ -296,7 +300,7 @@ function ExpTrackerSystem()
             local stamina = player:getStamina() / 60 -- In hours
             if stamina > 40 then stamina = 40 end -- Cap at 40 hours (stamina limit)
             
-            local expPerSecond = self:getExpForInterval(3600) / 3600
+            local expPerSecond = self:getExpForInterval(3600, 'raw') / 3600
             local totalExp = expPerSecond * stamina * 3600
             local level = player:getLevel()
             local currentExp = player:getExperience()

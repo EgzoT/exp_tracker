@@ -12,11 +12,26 @@ MiniWindow
     padding-left: 5
     padding-right: 5
 
-    Label
+    Button
+      id: modeAdjusted
       anchors.top: parent.top
+      anchors.left: parent.left
+      text: 1x Mode
+      width: 80
+
+    Button
+      id: modeRaw
+      anchors.top: parent.top
+      anchors.right: parent.right
+      text: Raw Mode
+      width: 80
+
+    Label
+      anchors.top: prev.bottom
       anchors.left: parent.left
       anchors.right: parent.right
       !text: tr('Time to next level:')
+      margin-top: 5
 
     Label
       id: timeToLevel
