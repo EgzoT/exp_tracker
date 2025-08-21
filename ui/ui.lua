@@ -5,6 +5,33 @@ function UI()
         menuButton = nil;
         updateEvent = false;
 
+        -- Format time in seconds to a concise string (days, hours, minutes)
+        formatTime = function(self, seconds)
+            if seconds < 3600 then -- Less than 1 hour
+                local minutes = math.floor(seconds / 60)
+                return minutes .. " minutes"
+            elseif seconds < 86400 then -- Less than 1 day
+                local hours = math.floor(seconds / 3600)
+                local minutes = math.floor((seconds % 3600) / 60)
+                if minutes == 0 then
+                    return hours .. " hours"
+                end
+                return hours .. " hours " .. minutes .. " minutes"
+            else -- 1 day or more
+                local days = math.floor(seconds / 86400)
+                local hours = math.floor((seconds % 86400) / 3600)
+                local minutes = math.floor((seconds % 3600) / 60)
+                local parts = {days .. " days"}
+                if hours > 0 then
+                    table.insert(parts, hours .. " hours")
+                end
+                if minutes > 0 then
+                    table.insert(parts, minutes .. " min")
+                end
+                return table.concat(parts, " ")
+            end
+        end;
+
         init = function(self)
             g_keyboard.bindKeyDown('Ctrl+E', function() ui:toggle() end)
 
@@ -62,7 +89,7 @@ function UI()
             local updateProgress = function()
                 local timeToLevel = expTracker:getTimeToNextLevel()
                 local levelAtStaminaEnd = expTracker:getLevelAtStaminaEnd()
-                self.windowContents:getChildById('timeToLevel'):setText(math.floor(timeToLevel / 60) .. ' minutes')
+                self.windowContents:getChildById('timeToLevel'):setText(self:formatTime(timeToLevel))
                 self.windowContents:getChildById('levelAtStaminaEnd'):setText(levelAtStaminaEnd)
             end
 
