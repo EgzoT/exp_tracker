@@ -83,12 +83,30 @@ function ExpTrackerSystem()
 
         -- Load configuration
         loadConfig = function(self)
-            if g_resources.fileExists(configFile) then
-                local parsed = JSON.decode(g_resources.readFileContents(configFile))
+            if g_resources.fileExists(self.configFile) then
+                local parsed = JSON.decode(g_resources.readFileContents(self.configFile))
                 self.expData.stages = parsed.stages or self.defaultExpStages
                 self.expData.staminaEnabled = parsed.staminaEnabled ~= nil and parsed.staminaEnabled or true
             else
                 self.expData.stages = self.defaultExpStages
+            end
+        end;
+
+        getModuleOrMods = function(self)
+            local splitPath = string.split(g_resources.getRealDir(), '/')
+            return splitPath[#splitPath]
+        end;
+
+        writeFile = function(self, path, text)
+            local file = io.open(g_resources.getWorkDir() .. self:getModuleOrMods() .. path, "w")
+
+            if file then
+                file:write(text)
+                file:close()
+
+                return true
+            else
+                return false
             end
         end;
 
@@ -98,7 +116,8 @@ function ExpTrackerSystem()
                 stages = self.expData.stages,
                 staminaEnabled = self.expData.staminaEnabled
             }
-            g_resources.writeFileContents(configFile, JSON.encode(config))
+
+            self:writeFile(self.configFile, JSON.encode(config))
         end;
 
         -- Get experience multiplier based on level

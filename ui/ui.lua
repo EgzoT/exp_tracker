@@ -3,34 +3,8 @@ function UI()
         window = nil;
         windowContents = nil;
         menuButton = nil;
+        optionPanel = nil;
         updateEvent = false;
-
-        -- Format time in seconds to a concise string (days, hours, minutes)
-        formatTime = function(self, seconds)
-            if seconds < 3600 then -- Less than 1 hour
-                local minutes = math.floor(seconds / 60)
-                return minutes .. " minutes"
-            elseif seconds < 86400 then -- Less than 1 day
-                local hours = math.floor(seconds / 3600)
-                local minutes = math.floor((seconds % 3600) / 60)
-                if minutes == 0 then
-                    return hours .. " hours"
-                end
-                return hours .. " hours " .. minutes .. " minutes"
-            else -- 1 day or more
-                local days = math.floor(seconds / 86400)
-                local hours = math.floor((seconds % 86400) / 3600)
-                local minutes = math.floor((seconds % 3600) / 60)
-                local parts = {days .. " days"}
-                if hours > 0 then
-                    table.insert(parts, hours .. " hours")
-                end
-                if minutes > 0 then
-                    table.insert(parts, minutes .. " min")
-                end
-                return table.concat(parts, " ")
-            end
-        end;
 
         init = function(self)
             g_keyboard.bindKeyDown('Ctrl+E', function() ui:toggle() end)
@@ -42,6 +16,7 @@ function UI()
             self.window:disableResize()
             self.windowContents = self.window:getChildById('expTrackerWindowContents')
             self.window:setup()
+            self:addToOptionsModule()
             self:setupUI()
         end;
 
@@ -52,6 +27,7 @@ function UI()
             end
 
             g_keyboard.unbindKeyDown('Ctrl+E')
+            self:destroyOptionsModule()
             self.menuButton:destroy()
             self.menuButton = nil
             self.window:destroy()
@@ -131,6 +107,60 @@ function UI()
                 self:open()
             end
         end;
+
+        -- Format time in seconds to a concise string (days, hours, minutes)
+        formatTime = function(self, seconds)
+            if seconds < 3600 then -- Less than 1 hour
+                local minutes = math.floor(seconds / 60)
+                return minutes .. " minutes"
+            elseif seconds < 86400 then -- Less than 1 day
+                local hours = math.floor(seconds / 3600)
+                local minutes = math.floor((seconds % 3600) / 60)
+                if minutes == 0 then
+                    return hours .. " hours"
+                end
+                return hours .. " hours " .. minutes .. " minutes"
+            else -- 1 day or more
+                local days = math.floor(seconds / 86400)
+                local hours = math.floor((seconds % 86400) / 3600)
+                local minutes = math.floor((seconds % 3600) / 60)
+                local parts = {days .. " days"}
+                if hours > 0 then
+                    table.insert(parts, hours .. " hours")
+                end
+                if minutes > 0 then
+                    table.insert(parts, minutes .. " min")
+                end
+                return table.concat(parts, " ")
+            end
+        end;
+
+        addToOptionsModule = function(self)
+            --Add to options module
+            self.optionPanel = g_ui.loadUI('options')
+            modules.client_options.addTab(tr('Exp Tracker'), self.optionPanel, '/exp_tracker/ui/options_icon')
+
+            -- Setup stamina checkbox
+            local staminaCheckbox = self.optionPanel:getChildById('staminaCheckbox')
+            staminaCheckbox:setChecked(expTracker.expData.staminaEnabled)
+            staminaCheckbox.onClick = function()
+                local checked = not staminaCheckbox:isChecked()
+                expTracker:toggleStamina(checked)
+                staminaCheckbox:setChecked(checked)
+            end
+        end;
+
+        destroyOptionsModule = function(self)
+            if self.optionPanel then
+                self.optionPanel:destroy()
+                self.optionPanel = nil
+            end
+
+            if modules.client_options.removeTab then
+                modules.client_options.removeTab('Exp Tracker')
+            end
+            self.optionPanel = nil
+        end
     }
 
     return ui

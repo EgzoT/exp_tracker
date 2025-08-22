@@ -1,0 +1,8 @@
+Panel
+  CheckBox
+    id: staminaCheckbox
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    !text: tr('Enable stamina bonus')
+    margin-top: 5
