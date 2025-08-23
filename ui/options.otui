@@ -6,3 +6,99 @@ Panel
     anchors.right: parent.right
     !text: tr('Enable stamina bonus')
     margin-top: 5
+
+  CheckBox
+    id: expStagesCheckbox
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    !text: tr('Exp stages')
+    margin-top: 5
+
+  TextList
+    id: expStagesList
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    focusable: false
+    phantom: true
+    vertical-scrollbar: expStagesScrollBar
+    width: 200
+    height: 150
+    margin-top: 5
+    auto-focus: first
+
+  VerticalScrollBar
+    id: expStagesScrollBar
+    anchors.top: expStagesList.top
+    anchors.bottom: expStagesList.bottom
+    anchors.left: expStagesList.right
+    step: 18
+    pixels-scroll: true
+  
+  Button
+    id: prevButton
+    anchors.top: expStagesList.top
+    anchors.left: expStagesList.right
+    text: <
+    width: 30
+    margin-left: 18
+
+  Button
+    id: nextButton
+    anchors.top: prev.bottom
+    anchors.left: expStagesList.right
+    text: >
+    width: 30
+    margin-top: 5
+    margin-left: 18
+
+  Button
+    id: removeButton
+    anchors.top: prev.bottom
+    anchors.left: expStagesList.right
+    text: Remove
+    width: 60
+    margin-top: 15
+    margin-left: 18
+
+  Label
+    id: fromLabel
+    anchors.top: expStagesList.bottom
+    anchors.left: parent.left
+    text: From:
+    width: 35
+    margin-top: 8
+
+  TextEdit
+    id: fromInput
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    width: 50
+    margin-top: 5
+    margin-left: 5
+
+  Label
+    id: toLabel
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    text: To:
+    width: 20
+    margin-top: 8
+    margin-left: 5
+
+  TextEdit
+    id: toInput
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    width: 50
+    margin-top: 5
+    margin-left: 5
+
+  Button
+    id: addButton
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    text: Add
+    width: 50
+    margin-top: 5
+    margin-left: 10
