@@ -1,3 +1,5 @@
+dofile('tools/stateManager')
+
 function ExpTrackerSystem()
     local system = {
         configFile = '/exp_tracker/config.json';
@@ -5,6 +7,7 @@ function ExpTrackerSystem()
         trackExpEvent = false;
         cleanOldDataEvent = false;
         currentMode = 'adjusted';
+        stateManager = StateManager({ staminaEnabled = true }); -- Initialize StateManager
 
         -- Experience stages configuration
         defaultExpStages = {
@@ -25,7 +28,6 @@ function ExpTrackerSystem()
             lastExp = 0,
             currentLevel = 0,
             currentExp = 0,
-            staminaEnabled = true,
             playerMap = {}, -- Maps player names to unique IDs
             nextPlayerId = 1,
             playerEvents = {}, -- List of player visibility events: {id, appear, disappear}
@@ -37,8 +39,12 @@ function ExpTrackerSystem()
             if not self.isInit then
                 self:loadConfig()
                 self:connect()
+
                 self.trackExpEvent = cycleEvent(function() self:trackExp() end, 1000)
                 self.cleanOldDataEvent = cycleEvent(function() self:cleanOldData() end, 60000)
+
+                -- Listen for staminaEnabled changes to save config
+                self.stateManager:onStateChange('staminaEnabled', function() self:saveConfig() end)
 
                 self.isInit = true
             end
@@ -86,9 +92,10 @@ function ExpTrackerSystem()
             if g_resources.fileExists(self.configFile) then
                 local parsed = JSON.decode(g_resources.readFileContents(self.configFile))
                 self.expData.stages = parsed.stages or self.defaultExpStages
-                self.expData.staminaEnabled = parsed.staminaEnabled ~= nil and parsed.staminaEnabled or true
+                self.stateManager:setState({ staminaEnabled = parsed.staminaEnabled == nil and true or parsed.staminaEnabled })
             else
                 self.expData.stages = self.defaultExpStages
+                self.stateManager:setState({ staminaEnabled = true })
             end
         end;
 
@@ -114,9 +121,8 @@ function ExpTrackerSystem()
         saveConfig = function(self)
             local config = {
                 stages = self.expData.stages,
-                staminaEnabled = self.expData.staminaEnabled
+                staminaEnabled = self.stateManager:get('staminaEnabled')
             }
-
             self:writeFile(self.configFile, JSON.encode(config))
         end;
 
@@ -132,7 +138,7 @@ function ExpTrackerSystem()
 
         -- Calculate stamina multiplier (150% for 42-40 hours)
         getStaminaMultiplier = function(self)
-            if not self.expData.staminaEnabled then return 1.0 end
+            if not self.stateManager:get('staminaEnabled') then return 1.0 end
             local stamina = g_game.getLocalPlayer():getStamina() / 60 -- Convert to hours
             return stamina >= 40 and stamina <= 42 and 1.5 or 1.0
         end;
@@ -353,10 +359,9 @@ function ExpTrackerSystem()
             self:saveConfig()
         end;
 
-        -- Toggle stamina system
-        toggleStamina = function(self, enabled)
-            self.expData.staminaEnabled = enabled
-            self:saveConfig()
+        -- Get StateManager instance
+        getStateManager = function(self)
+            return self.stateManager
         end;
     }
 

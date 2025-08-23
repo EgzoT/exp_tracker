@@ -136,18 +136,20 @@ function UI()
         end;
 
         addToOptionsModule = function(self)
-            --Add to options module
+            -- Add to options module
             self.optionPanel = g_ui.loadUI('options')
             modules.client_options.addTab(tr('Exp Tracker'), self.optionPanel, '/exp_tracker/ui/options_icon')
 
             -- Setup stamina checkbox
             local staminaCheckbox = self.optionPanel:getChildById('staminaCheckbox')
-            staminaCheckbox:setChecked(expTracker.expData.staminaEnabled)
+            staminaCheckbox:setChecked(expTracker:getStateManager():get('staminaEnabled'))
             staminaCheckbox.onClick = function()
-                local checked = not staminaCheckbox:isChecked()
-                expTracker:toggleStamina(checked)
-                staminaCheckbox:setChecked(checked)
+                expTracker:getStateManager():set('staminaEnabled', not staminaCheckbox:isChecked())
             end
+            -- Listen for staminaEnabled state changes
+            expTracker:getStateManager():onStateChange('staminaEnabled', function(value)
+                staminaCheckbox:setChecked(value)
+            end)
         end;
 
         destroyOptionsModule = function(self)
