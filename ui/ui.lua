@@ -5,6 +5,7 @@ function UI()
         menuButton = nil;
         optionPanel = nil;
         updateEvent = false;
+        expStagesElementsUI = {};
 
         init = function(self)
             g_keyboard.bindKeyDown('Ctrl+E', function() ui:toggle() end)
@@ -76,6 +77,9 @@ function UI()
                     updateProgress()
                 end, 1000)
             end
+
+            -- Setup exp stages UI
+            self:setupExpStagesUI()
         end;
 
         setButtonStates = function(self)
@@ -150,6 +154,18 @@ function UI()
             expTracker:getStateManager():onStateChange('staminaEnabled', function(value)
                 staminaCheckbox:setChecked(value)
             end)
+
+            -- Setup exp stages checkbox
+            local expStagesCheckbox = self.optionPanel:getChildById('expStagesCheckbox')
+            expStagesCheckbox:setChecked(expTracker:getStateManager():get('expStagesEnabled'))
+            expStagesCheckbox.onClick = function()
+                expTracker:getStateManager():set('expStagesEnabled', not expStagesCheckbox:isChecked())
+            end
+            -- Listen for expStagesEnabled state changes
+            expTracker:getStateManager():onStateChange('expStagesEnabled', function(value)
+                expStagesCheckbox:setChecked(value)
+                self:updateExpStagesVisibility(value)
+            end)
         end;
 
         destroyOptionsModule = function(self)
@@ -162,7 +178,138 @@ function UI()
                 modules.client_options.removeTab('Exp Tracker')
             end
             self.optionPanel = nil
-        end
+        end;
+
+        -- Setup exp stages UI elements
+        setupExpStagesUI = function(self)
+            local expStagesList = self.optionPanel:getChildById('expStagesList')
+            local prevButton = self.optionPanel:getChildById('prevButton')
+            local nextButton = self.optionPanel:getChildById('nextButton')
+            local removeButton = self.optionPanel:getChildById('removeButton')
+            local levelMinInput = self.optionPanel:getChildById('levelMinInput')
+            local levelMaxInput = self.optionPanel:getChildById('levelMaxInput')
+            local multiplierInput = self.optionPanel:getChildById('multiplierInput')
+            local addButton = self.optionPanel:getChildById('addButton')
+
+            -- Setup exp stages
+            expTracker:getStateManager():onStateChange('expStages', function()
+                self:updateExpStagesList()
+            end)
+
+            -- Populate exp stages list
+            self:updateExpStagesList()
+
+            -- Update visibility based on initial state
+            self:updateExpStagesVisibility(expTracker:getStateManager():get('expStagesEnabled'))
+
+            -- Previous button
+            prevButton.onClick = function()
+                local focusedChild = expStagesList:getFocusedChild()
+                local find = false
+                for i = #self.expStagesElementsUI, 1, -1 do
+                    if find then
+                        expStagesList:focusChild(self.expStagesElementsUI[i])
+                        break
+                    end
+
+                    if focusedChild == self.expStagesElementsUI[i] then
+                        find = true
+                    end
+                end
+            end
+
+            -- Next button
+            nextButton.onClick = function()
+                local focusedChild = expStagesList:getFocusedChild()
+                local find = false
+                for i,_ in ipairs(self.expStagesElementsUI) do
+                    if find then
+                        expStagesList:focusChild(self.expStagesElementsUI[i])
+                        break
+                    end
+
+                    if focusedChild == self.expStagesElementsUI[i] then
+                        find = true
+                    end
+                end
+            end
+
+            -- Remove button
+            removeButton.onClick = function()
+                expTracker:removeExpStage(tonumber(expStagesList:getFocusedChild():getId()))
+            end
+
+            -- Add button
+            addButton.onClick = function()
+                local levelMin = tonumber(levelMinInput:getText())
+                local levelMax = tonumber(levelMaxInput:getText())
+                local multiplier = tonumber(multiplierInput:getText())
+                if levelMin and levelMax and levelMin > 0 and levelMax >= levelMin then
+                    expTracker:addExpStage(levelMin, levelMax, multiplier)
+                    self:updateExpStagesList()
+                    levelMinInput:setText('')
+                    levelMaxInput:setText('')
+                    multiplierInput:setText('')
+                end
+            end
+        end;
+
+        -- Update exp stages list UI
+        updateExpStagesList = function(self)
+            -- Delete
+            for i,_ in pairs(self.expStagesElementsUI) do
+                self.expStagesElementsUI[i]:destroy()
+                self.expStagesElementsUI[i] = nil
+            end
+
+            -- Add
+            local expStagesList = self.optionPanel:getChildById('expStagesList')
+            local expStages = expTracker.stateManager:get('expStages')
+            for i,v in pairs(expStages) do
+                self.expStagesElementsUI[i] = g_ui.createWidget('ListLabel', expStagesList)
+                local name = v.levelMin .. '-' .. v.levelMax .. ' [' .. v.multiplier .. 'x]'
+                self.expStagesElementsUI[i]:setText(name)
+                self.expStagesElementsUI[i]:setId(i)
+            end
+
+            --[[
+            local expStagesList = self.optionPanel:getChildById('expStagesList')
+            -- TODO
+            -- expStagesList:clear()
+            for _, stage in ipairs(expTracker:getExpStages()) do
+                expStagesList:addOption(string.format("Level %d-%d: %.2fx", stage.levelMin, stage.levelMax, stage.multiplier))
+            end
+            if #expTracker:getExpStages() > 0 then
+                expStagesList:moveToIndex(1)
+            end
+            ]]
+        end;
+
+        -- Update visibility of exp stages UI elements
+        updateExpStagesVisibility = function(self, isVisible)
+            local elements = {
+                'expStagesList',
+                'expStagesScrollBar',
+                'prevButton',
+                'nextButton',
+                'removeButton',
+                'levelMinLabel',
+                'levelMinInput',
+                'levelMaxLabel',
+                'levelMaxInput',
+                'multiplierLabel',
+                'multiplierInput',
+                'addButton'
+            }
+            for _, id in ipairs(elements) do
+                local widget = self.optionPanel:getChildById(id)
+                if isVisible then
+                    widget:show()
+                else
+                    widget:hide()
+                end
+            end
+        end;
     }
 
     return ui

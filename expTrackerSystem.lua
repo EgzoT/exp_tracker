@@ -7,16 +7,7 @@ function ExpTrackerSystem()
         trackExpEvent = false;
         cleanOldDataEvent = false;
         currentMode = 'adjusted';
-        stateManager = StateManager({ staminaEnabled = true }); -- Initialize StateManager
-
-        -- Experience stages configuration
-        defaultExpStages = {
-            {levelMin = 1, levelMax = 79, multiplier = 5.0},
-            {levelMin = 80, levelMax = 119, multiplier = 3.0},
-            {levelMin = 120, levelMax = 149, multiplier = 2.0},
-            {levelMin = 150, levelMax = 199, multiplier = 1.5},
-            {levelMin = 200, levelMax = 250, multiplier = 1.0}
-        };
+        stateManager = StateManager({ staminaEnabled = true, expStagesEnabled = true, expStages = {} });
 
         -- Time intervals for exp tracking (in seconds)
         timeIntervals = {60, 180, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800};
@@ -43,8 +34,9 @@ function ExpTrackerSystem()
                 self.trackExpEvent = cycleEvent(function() self:trackExp() end, 1000)
                 self.cleanOldDataEvent = cycleEvent(function() self:cleanOldData() end, 60000)
 
-                -- Listen for staminaEnabled changes to save config
+                -- Listen for changes to save config
                 self.stateManager:onStateChange('staminaEnabled', function() self:saveConfig() end)
+                self.stateManager:onStateChange('expStagesEnabled', function() self:saveConfig() end)
 
                 self.isInit = true
             end
@@ -91,11 +83,13 @@ function ExpTrackerSystem()
         loadConfig = function(self)
             if g_resources.fileExists(self.configFile) then
                 local parsed = JSON.decode(g_resources.readFileContents(self.configFile))
-                self.expData.stages = parsed.stages or self.defaultExpStages
-                self.stateManager:setState({ staminaEnabled = parsed.staminaEnabled == nil and true or parsed.staminaEnabled })
+                self.stateManager:setState({
+                    staminaEnabled = parsed.staminaEnabled == nil and true or parsed.staminaEnabled,
+                    expStagesEnabled = parsed.expStagesEnabled == nil and true or parsed.expStagesEnabled,
+                    expStages = parsed.stages or {}
+                })
             else
-                self.expData.stages = self.defaultExpStages
-                self.stateManager:setState({ staminaEnabled = true })
+                self.stateManager:setState({ staminaEnabled = true, expStagesEnabled = true, expStages = {} })
             end
         end;
 
@@ -106,11 +100,9 @@ function ExpTrackerSystem()
 
         writeFile = function(self, path, text)
             local file = io.open(g_resources.getWorkDir() .. self:getModuleOrMods() .. path, "w")
-
             if file then
                 file:write(text)
                 file:close()
-
                 return true
             else
                 return false
@@ -120,15 +112,19 @@ function ExpTrackerSystem()
         -- Save configuration
         saveConfig = function(self)
             local config = {
-                stages = self.expData.stages,
-                staminaEnabled = self.stateManager:get('staminaEnabled')
+                stages = self.stateManager:get('expStages'),
+                staminaEnabled = self.stateManager:get('staminaEnabled'),
+                expStagesEnabled = self.stateManager:get('expStagesEnabled')
             }
             self:writeFile(self.configFile, JSON.encode(config))
         end;
 
         -- Get experience multiplier based on level
         getExpMultiplier = function(self, level)
-            for _, stage in ipairs(self.expData.stages) do
+            if not self.stateManager:get('expStagesEnabled') then
+                return 1.0 -- Default multiplier when exp stages are disabled
+            end
+            for _, stage in ipairs(self.stateManager:get('expStages')) do
                 if level >= stage.levelMin and level <= stage.levelMax then
                     return stage.multiplier
                 end
@@ -350,13 +346,30 @@ function ExpTrackerSystem()
 
         -- Get exp stages
         getExpStages = function(self)
-            return self.expData.stages
+            return self.stateManager:get('expStages')
         end;
 
-        -- Update exp stages
-        updateExpStages = function(self, stages)
-            self.expData.stages = stages
+        -- Add new exp stage
+        addExpStage = function(self, levelMin, levelMax, multiplier)
+            local expStages = self.stateManager:get('expStages')
+            table.insert(expStages, {
+                levelMin = levelMin,
+                levelMax = levelMax,
+                multiplier = multiplier
+            })
+            table.sort(expStages, function(a, b) return a.levelMin < b.levelMin end)
+            self.stateManager:set('expStages', expStages)
             self:saveConfig()
+        end;
+
+        -- Remove exp stage by index
+        removeExpStage = function(self, index)
+            local expStages = self.stateManager:get('expStages')
+            if expStages[index] then
+                table.remove(expStages, index)
+                self.stateManager:set('expStages', expStages)
+                self:saveConfig()
+            end
         end;
 
         -- Get StateManager instance

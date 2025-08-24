@@ -1,3 +1,14 @@
+ListLabel < Label
+  font: verdana-11px-monochrome
+  background-color: alpha
+  text-offset: 2 0
+  text-align: center
+  focusable: true
+
+  $focus:
+    background-color: #ffd700
+    color: #000000
+
 Panel
   CheckBox
     id: staminaCheckbox
@@ -62,43 +73,59 @@ Panel
     margin-left: 18
 
   Label
-    id: fromLabel
+    id: levelMinLabel
     anchors.top: expStagesList.bottom
     anchors.left: parent.left
-    text: From:
-    width: 35
+    text: Level min:
+    width: 60
     margin-top: 8
 
   TextEdit
-    id: fromInput
+    id: levelMinInput
     anchors.top: expStagesList.bottom
     anchors.left: prev.right
-    width: 50
+    width: 40
     margin-top: 5
     margin-left: 5
 
   Label
-    id: toLabel
+    id: levelMaxLabel
     anchors.top: expStagesList.bottom
     anchors.left: prev.right
-    text: To:
-    width: 20
+    text: Level max:
+    width: 65
     margin-top: 8
     margin-left: 5
 
   TextEdit
-    id: toInput
+    id: levelMaxInput
     anchors.top: expStagesList.bottom
     anchors.left: prev.right
-    width: 50
+    width: 40
+    margin-top: 5
+    margin-left: 5
+
+  Label
+    id: multiplierLabel
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    text: Multiplier:
+    width: 57
+    margin-top: 8
+    margin-left: 5
+
+  TextEdit
+    id: multiplierInput
+    anchors.top: expStagesList.bottom
+    anchors.left: prev.right
+    width: 40
     margin-top: 5
     margin-left: 5
 
   Button
     id: addButton
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: prev.bottom
+    anchors.left: parent.left
     text: Add
     width: 50
     margin-top: 5
-    margin-left: 10
