@@ -187,6 +187,7 @@ function UI()
             local nextButton = self.optionPanel:getChildById('nextButton')
             local removeButton = self.optionPanel:getChildById('removeButton')
             local levelMinInput = self.optionPanel:getChildById('levelMinInput')
+            local levelMaxCheckbox = self.optionPanel:getChildById('levelMaxCheckbox')
             local levelMaxInput = self.optionPanel:getChildById('levelMaxInput')
             local multiplierInput = self.optionPanel:getChildById('multiplierInput')
             local addButton = self.optionPanel:getChildById('addButton')
@@ -201,6 +202,16 @@ function UI()
 
             -- Update visibility based on initial state
             self:updateExpStagesVisibility(expTracker:getStateManager():get('expStagesEnabled'))
+
+            levelMaxCheckbox.onCheckChange = function(widget, checked)
+                if checked then
+                    levelMaxCheckbox:setText('Level max')
+                    levelMaxInput:hide()
+                else
+                    levelMaxCheckbox:setText('Level max:')
+                    levelMaxInput:show()
+                end
+            end
 
             -- Previous button
             prevButton.onClick = function()
@@ -236,53 +247,60 @@ function UI()
 
             -- Remove button
             removeButton.onClick = function()
-                expTracker:removeExpStage(tonumber(expStagesList:getFocusedChild():getId()))
+                local focusedChild = expStagesList:getFocusedChild()
+                if focusedChild then
+                    expTracker:removeExpStage(tonumber(focusedChild:getId()))
+                end
             end
 
             -- Add button
             addButton.onClick = function()
                 local levelMin = tonumber(levelMinInput:getText())
                 local levelMax = tonumber(levelMaxInput:getText())
-                local multiplier = tonumber(multiplierInput:getText())
-                if levelMin and levelMax and levelMin > 0 and levelMax >= levelMin then
-                    expTracker:addExpStage(levelMin, levelMax, multiplier)
-                    self:updateExpStagesList()
-                    levelMinInput:setText('')
-                    levelMaxInput:setText('')
-                    multiplierInput:setText('')
+                if levelMaxCheckbox:isChecked() then
+                    levelMax = 0
                 end
+                local multiplier = tonumber(multiplierInput:getText())
+
+                if levelMin == nil or levelMin < 1 or levelMax == nil or levelMax < 0 or multiplier == nil or multiplier <= 0 then
+                    displayErrorBox(tr('Error'), 'Invalid input. Please enter valid numbers.')
+                    return
+                end
+                if levelMin < 1 or levelMax < 0 or (levelMax > 0 and levelMax < levelMin) or multiplier <= 0 then
+                    displayErrorBox(tr('Error'), 'Invalid stage: Level min must be >= 1, level max must be >= level min or 0, multiplier must be > 0.')
+                    return
+                end
+
+                expTracker:addExpStage(levelMin, levelMax, multiplier)
+                self:updateExpStagesList()
+                levelMinInput:setText('')
+                levelMaxInput:setText('')
+                multiplierInput:setText('')
             end
         end;
 
         -- Update exp stages list UI
         updateExpStagesList = function(self)
-            -- Delete
+            -- Clear existing elements
             for i,_ in pairs(self.expStagesElementsUI) do
                 self.expStagesElementsUI[i]:destroy()
                 self.expStagesElementsUI[i] = nil
             end
 
-            -- Add
+            -- Add new elements
             local expStagesList = self.optionPanel:getChildById('expStagesList')
             local expStages = expTracker.stateManager:get('expStages')
             for i,v in pairs(expStages) do
                 self.expStagesElementsUI[i] = g_ui.createWidget('ListLabel', expStagesList)
-                local name = v.levelMin .. '-' .. v.levelMax .. ' [' .. v.multiplier .. 'x]'
+                local name = ''
+                if v.levelMax == 0 then
+                    name = v.levelMin .. '+' .. ' [' .. v.multiplier .. 'x]'
+                else
+                    name = v.levelMin .. '-' .. v.levelMax .. ' [' .. v.multiplier .. 'x]'
+                end
                 self.expStagesElementsUI[i]:setText(name)
                 self.expStagesElementsUI[i]:setId(i)
             end
-
-            --[[
-            local expStagesList = self.optionPanel:getChildById('expStagesList')
-            -- TODO
-            -- expStagesList:clear()
-            for _, stage in ipairs(expTracker:getExpStages()) do
-                expStagesList:addOption(string.format("Level %d-%d: %.2fx", stage.levelMin, stage.levelMax, stage.multiplier))
-            end
-            if #expTracker:getExpStages() > 0 then
-                expStagesList:moveToIndex(1)
-            end
-            ]]
         end;
 
         -- Update visibility of exp stages UI elements
@@ -295,7 +313,7 @@ function UI()
                 'removeButton',
                 'levelMinLabel',
                 'levelMinInput',
-                'levelMaxLabel',
+                'levelMaxCheckbox',
                 'levelMaxInput',
                 'multiplierLabel',
                 'multiplierInput',

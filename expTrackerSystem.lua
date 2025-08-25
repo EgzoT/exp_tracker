@@ -125,11 +125,11 @@ function ExpTrackerSystem()
                 return 1.0 -- Default multiplier when exp stages are disabled
             end
             for _, stage in ipairs(self.stateManager:get('expStages')) do
-                if level >= stage.levelMin and level <= stage.levelMax then
+                if level >= stage.levelMin and (stage.levelMax == 0 or level <= stage.levelMax) then
                     return stage.multiplier
                 end
             end
-            return 1.0 -- Default multiplier
+            return 1.0 -- Default multiplier if no stage matches
         end;
 
         -- Calculate stamina multiplier (150% for 42-40 hours)

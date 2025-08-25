@@ -88,13 +88,13 @@ Panel
     margin-top: 5
     margin-left: 5
 
-  Label
-    id: levelMaxLabel
+  CheckBox
+    id: levelMaxCheckbox
     anchors.top: expStagesList.bottom
     anchors.left: prev.right
     text: Level max:
-    width: 65
-    margin-top: 8
+    width: 82
+    margin-top: 6
     margin-left: 5
 
   TextEdit
