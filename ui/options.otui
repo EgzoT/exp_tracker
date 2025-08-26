@@ -16,7 +16,6 @@ Panel
     anchors.left: parent.left
     anchors.right: parent.right
     !text: tr('Enable stamina bonus')
-    margin-top: 5
 
   CheckBox
     id: expStagesCheckbox
@@ -56,76 +55,83 @@ Panel
 
   Button
     id: nextButton
-    anchors.top: prev.bottom
-    anchors.left: expStagesList.right
+    anchors.top: prev.top
+    anchors.left: prev.right
     text: >
     width: 30
-    margin-top: 5
-    margin-left: 18
+    margin-left: 5
 
   Button
     id: removeButton
-    anchors.top: prev.bottom
-    anchors.left: expStagesList.right
+    anchors.top: prev.top
+    anchors.right: parent.right
     text: Remove
     width: 60
-    margin-top: 15
-    margin-left: 18
 
   Label
     id: levelMinLabel
-    anchors.top: expStagesList.bottom
-    anchors.left: parent.left
+    anchors.top: prev.bottom
+    anchors.left: expStagesList.right
     text: Level min:
     width: 60
-    margin-top: 8
+    margin-top: 18
+    margin-left: 18
 
   TextEdit
     id: levelMinInput
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: prevButton.bottom
+    anchors.right: parent.right
     width: 40
-    margin-top: 5
-    margin-left: 5
+    margin-top: 15
 
   CheckBox
     id: levelMaxCheckbox
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: prev.bottom
+    anchors.left: expStagesList.right
     text: Level max:
     width: 82
     margin-top: 6
-    margin-left: 5
+    margin-left: 18
 
   TextEdit
     id: levelMaxInput
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: levelMinInput.bottom
+    anchors.right: parent.right
     width: 40
     margin-top: 5
-    margin-left: 5
 
   Label
     id: multiplierLabel
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: prev.bottom
+    anchors.left: expStagesList.right
     text: Multiplier:
     width: 57
     margin-top: 8
-    margin-left: 5
+    margin-left: 18
 
   TextEdit
     id: multiplierInput
-    anchors.top: expStagesList.bottom
-    anchors.left: prev.right
+    anchors.top: levelMaxInput.bottom
+    anchors.right: parent.right
     width: 40
     margin-top: 5
-    margin-left: 5
 
   Button
     id: addButton
     anchors.top: prev.bottom
-    anchors.left: parent.left
+    anchors.left: expStagesList.right
     text: Add
     width: 50
+    margin-top: 10
+    margin-left: 18
+
+  Label
+    id: errorLabel
+    anchors.top: expStagesList.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    color: red
+    text-wrap: true
+    multi-line: true
     margin-top: 5
+    height: 90

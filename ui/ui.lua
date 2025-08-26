@@ -191,6 +191,8 @@ function UI()
             local levelMaxInput = self.optionPanel:getChildById('levelMaxInput')
             local multiplierInput = self.optionPanel:getChildById('multiplierInput')
             local addButton = self.optionPanel:getChildById('addButton')
+            self.errorLabel = self.optionPanel:getChildById('errorLabel')
+            self.errorLabel:hide()
 
             -- Setup exp stages
             expTracker:getStateManager():onStateChange('expStages', function()
@@ -301,6 +303,58 @@ function UI()
                 self.expStagesElementsUI[i]:setText(name)
                 self.expStagesElementsUI[i]:setId(i)
             end
+
+            self:validateExpStages()
+        end;
+
+        -- Validate exp stages and display errors if any
+        validateExpStages = function(self)
+            local errors = {}
+            local stages = expTracker:getExpStages()
+            if #stages == 0 then
+                table.insert(errors, "The list of stages is empty.")
+            else
+                -- Check starting from level 1
+                if stages[1].levelMin ~= 1 then
+                    table.insert(errors, "Missing stage starting from level 1.")
+                end
+
+                -- Check for infinity stage
+                local hasInfinity = false
+                for _, stage in ipairs(stages) do
+                    if stage.levelMax == 0 then
+                        hasInfinity = true
+                        break
+                    end
+                end
+                if not hasInfinity then
+                    table.insert(errors, "No stage covers levels to infinity (level max = 0).")
+                end
+
+                -- Check for gaps and overlaps
+                local coveredUpTo = 0
+                for i, stage in ipairs(stages) do
+                    if stage.levelMin > coveredUpTo + 1 then
+                        table.insert(errors, string.format("Gap in levels: missing coverage from %d to %d.", coveredUpTo + 1, stage.levelMin - 1))
+                    end
+                    if i > 1 and stage.levelMin <= coveredUpTo then
+                        local overlapStart = stage.levelMin
+                        local overlapEnd = math.min(coveredUpTo, stage.levelMax == 0 and math.huge or stage.levelMax)
+                        local stageRange = stage.levelMax == 0 and stage.levelMin .. "+" or stage.levelMin .. "-" .. stage.levelMax
+                        local prevRange = stages[i-1].levelMax == 0 and stages[i-1].levelMin .. "+" or stages[i-1].levelMin .. "-" .. stages[i-1].levelMax
+                        table.insert(errors, string.format("Overlapping stages: %s overlaps with %s in levels %d-%s.", stageRange, prevRange, overlapStart, overlapEnd == math.huge and "+" or overlapEnd))
+                    end
+                    coveredUpTo = stage.levelMax == 0 and math.huge or stage.levelMax
+                end
+            end
+
+            if #errors > 0 then
+                self.errorLabel:setText(table.concat(errors, "\n"))
+                self.errorLabel:show()
+            else
+                self.errorLabel:setText("")
+                self.errorLabel:hide()
+            end
         end;
 
         -- Update visibility of exp stages UI elements
@@ -317,7 +371,8 @@ function UI()
                 'levelMaxInput',
                 'multiplierLabel',
                 'multiplierInput',
-                'addButton'
+                'addButton',
+                'errorLabel'
             }
             for _, id in ipairs(elements) do
                 local widget = self.optionPanel:getChildById(id)
