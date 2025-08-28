@@ -132,11 +132,17 @@ function ExpTrackerSystem()
             return 1.0 -- Default multiplier if no stage matches
         end;
 
-        -- Calculate stamina multiplier (150% for 42-40 hours)
-        getStaminaMultiplier = function(self)
+        -- Calculate stamina bonus multiplier (150% for 42-40 hours)
+        getStaminaBonusMultiplier = function(self)
             if not self.stateManager:get('staminaEnabled') then return 1.0 end
             local stamina = g_game.getLocalPlayer():getStamina() / 60 -- Convert to hours
             return stamina >= 40 and stamina <= 42 and 1.5 or 1.0
+        end;
+
+        -- Calculate stamina penalty multiplier (50% below 14 hours)
+        getStaminaPenaltyMultiplier = function(self)
+            local stamina = g_game.getLocalPlayer():getStamina() / 60 -- Convert to hours
+            return stamina < 14 and 0.5 or 1.0
         end;
 
         -- Calculate experience needed for next level
@@ -165,7 +171,7 @@ function ExpTrackerSystem()
 
             if self.expData.lastExp > 0 and currentExp > self.expData.lastExp then
                 local expGain = currentExp - self.expData.lastExp
-                local multiplier = self:getExpMultiplier(level) * self:getStaminaMultiplier()
+                local multiplier = self:getExpMultiplier(level) * self:getStaminaBonusMultiplier() * self:getStaminaPenaltyMultiplier()
                 local adjustedExp = math.floor(expGain / multiplier)
 
                 table.insert(self.expData.history, {
